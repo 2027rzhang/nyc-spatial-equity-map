@@ -22,13 +22,156 @@
             height: 700px;
             width: 100%;
         }
+
+        .project-header {
+            padding: 18px 24px;
+            background: #ffffff;
+            border-bottom: 1px solid #dddddd;
+            font-family: Arial, sans-serif;
+        }
+
+        .project-header h1 {
+            margin: 0 0 6px;
+            font-size: 26px;
+            color: #203b50;
+        }
+
+        .project-header .subtitle {
+            margin: 0 0 8px;
+            font-size: 16px;
+            font-style: italic;
+            color: #526777;
+        }
+
+        .project-header .description {
+            margin: 0;
+            font-size: 14px;
+            color: #444444;
+            line-height: 1.5;
+        }
+
+        .methodology {
+            padding: 16px 24px;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #444444;
+            background: #f7f9fa;
+        }
+
+        .methodology h2 {
+            margin-top: 0;
+            font-size: 17px;
+            color: #203b50;
+        }
+
+        /* Global typography and text color */
+        body,
+        button,
+        select,
+        input,
+        textarea {
+            font-family: "Inter", "Helvetica Neue", sans-serif;
+            color: #000000;
+        }
+
+        /* Main project title */
+        .project-header h1 {
+            font-family: "Inter", "Helvetica Neue", sans-serif;
+            font-size: 30px;
+            font-weight: 700;
+            letter-spacing: -0.7px;
+            color: #000000;
+        }
+
+        /* Subtitle and description */
+        .project-header .subtitle,
+        .project-header .description {
+            color: #000000;
+        }
+
+        /* Compare By dropdown and other controls */
+        select,
+        button {
+            color: #000000;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Methodology section */
+        .methodology,
+        .methodology h2,
+        .methodology p {
+            color: #000000;
+        }
+
+        html,
+        body {
+            min-height: 100%;
+            height: auto;
+            margin: 0;
+        }
+
+        body {
+            overflow-y: auto;
+        }
+
+        .methodology {
+            display: block;
+            position: relative;
+            clear: both;
+            padding: 20px 24px;
+            margin-top: 16px;
+            background: #ffffff;
+            border-top: 1px solid #dddddd;
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        /* Keep the map at a useful height */
+        #map {
+            height: 75vh;
+            min-height: 600px;
+            width: 100%;
+        }
+
+        /* Compare By dropdown */
+        select {
+            font-family: "Inter", "Helvetica Neue", sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: #000000;
+            background-color: #ffffff;
+            border: 1px solid #bdbdbd;
+            border-radius: 6px;
+            padding: 9px 12px;
+            min-height: 38px;
+        }
+
+        select:focus {
+            border-color: #000000;
+            outline: 1px solid #000000;
+        }
+
+        label[for="metric"] {
+            margin-left: 20px;
+        }
     </style>
 
 </head>
 
 <body>
 
-    <h1>NYC Spatial Equity Map</h1>
+    <header class="project-header">
+        <h1>NYC Spatial Equity Map</h1>
+        <p class="subtitle">
+            Exploring the geography of opportunity across New York City.
+        </p>
+        <p class="description">
+            Explore how demographics, public transit access, income,
+            and poverty vary across New York City's community districts.
+        </p>
+    </header>
 
     <div id="controls">
         <label for="metric">Compare by:</label>
@@ -628,16 +771,13 @@
                         }
                         else if (selectedMetric === 'povertyRate') {
 
-                            const economics =
-                                economicsByDistrict[cdta];
+                            const economics = economicsByDistrict[cdta];
 
                             value =
                                 economics &&
                                     Number(economics.PopPvU1E) > 0
-                                    ? (
-                                        Number(economics.PBwPvE) /
-                                        Number(economics.PopPvU1E)
-                                    ) * 100
+                                    ? (Number(economics.PBwPvE) /
+                                        Number(economics.PopPvU1E)) * 100
                                     : 0;
 
                         }
@@ -1026,6 +1166,23 @@
 
 
     </script>
+
+
+    <section class="methodology">
+        <h2>About the Data</h2>
+        <p>
+            This map compares demographic, transportation, and economic
+            indicators across New York City's community districts. All data is from the 2024 5-year American Community Survey (ACS).
+            Subway access is measured using station complexes and
+            population-adjusted counts. Poverty rate is calculated as
+            the share of the population for whom poverty status is
+            determined whose income falls below the poverty threshold.
+        </p>
+        <p>
+            Subway station counts measure geographic availability,
+            not service frequency, travel time, or ease of access. 
+        </p>
+    </section>
 
 </body>
 
