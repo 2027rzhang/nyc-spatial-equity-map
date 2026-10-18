@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>NYC Spatial Equity Map</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            text-align: center;
+            margin: 15px;
+        }
+
+        #map {
+            height: 700px;
+            width: 100%;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <h1>NYC Spatial Equity Map</h1>
+
+    <div id="controls">
+        <label for="metric">Compare by:</label>
+
+        <select id="metric">
+
+            <optgroup label="Demographics">
+                <option value="population">Population</option>
+                <option value="medianAge">Median Age</option>
+                <option value="hispanic">Hispanic/Latino %</option>
+                <option value="white">Non-Hispanic White %</option>
+                <option value="black">Non-Hispanic Black %</option>
+                <option value="asian">Asian %</option>
+                <option value="under18">Under 18 %</option>
+            </optgroup>
+
+            <optgroup label="Transportation">
+                <option value="subway">Subway Station Complexes</option>
+                <option value="subwayPer100k">Subway Complexes / 100k Residents</option>
+            </optgroup>
+
+            <optgroup label="Economics">
+                <option value="income">Median Household Income</option>
+                <option value="perCapitaIncome">Per Capita Income</option>
+                <option value="povertyRate">Population Poverty Rate</option>
+            </optgroup>
+
+        </select>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+
+    <script>
+
+        // Create the map
+        const map = L.map('map').setView(
+            [40.7128, -74.0060],
+            11
+        );
+
+        // Add the background map
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                attribution: '&copy; OpenStreetMap contributors'
+            }
+        ).addTo(map);
+
+
+        // Load the Community District GeoJSON
+        Promise.all([
+            fetch('Community_Districts.geojson').then(response => response.json()),
+            fetch('data/demographics.csv').then(response => response.text()),
+            fetch('data/subway.csv').then(response => response.text()),
+            fetch('data/economics.csv').then(response => response.text())
+        ])
+            .then(([geojsonData, csvText, subwayCSVText, economicsCSVText]) => {
+
+                // Convert the CSV into a list of objects
+                function parseCSV(text) {
+                    const lines = text.trim().split(/\r?\n/);
+
+                    function splitCSVLine(line) {
+                        const result = [];
+                        let current = '';
+                        let insideQuotes = false;
+
+                        for (let i = 0; i < line.length; i++) {
+                            const character = line[i];
+
+                            if (character === '"') {
+                                insideQuotes = !insideQuotes;
+                            }
+                            else if (character === ',' && !insideQuotes) {
+                                result.push(current.trim());
+                                current = '';
+                            }
+                            else {
+                                current += character;
+                            }
+                        }
+
+                        result.push(current.trim());
+
+                        return result;
+                    }
+
+                    const headers = splitCSVLine(lines[0]);
+
+                    return lines.slice(1).map(line => {
+                        const values = splitCSVLine(line);
+                        const row = {};
+
+                        headers.forEach((header, index) => {
+                            row[header.trim()] =
+                                values[index] ? values[index].trim() : '';
+                        });
+
+                        return row;
+                    });
+                }
+                const demographicData = parseCSV(csvText);
+
+                // Parse subway data
+                const subwayData = parseCSV(subwayCSVText);
+
+                const economicsData = parseCSV(economicsCSVText);
+
+                console.log("Economics records loaded:", economicsData.length);
+                console.log("First economics record:", economicsData[0]);
+                console.log("Economics GeoIDs:", economicsData.slice(0, 10).map(row => row.GeoID));
+                console.log("Map CDTA example:", geojsonData.features[0].properties.CDTA2020);
+                console.log("Income field example:", economicsData[0].MdHHIncE);
+
+                const economicsByDistrict = {};
+
+                economicsData.forEach(row => {
+                    economicsByDistrict[row.GeoID] = row;
+                });
+                console.log("Economics data:", economicsData);
+                console.log("Economics lookup:", economicsByDistrict);
+                console.log("BK01 economics:", economicsByDistrict["BK01"]);
+
+                console.log("Subway records loaded:", subwayData.length);
+                console.log("First subway record:", subwayData[0]);
+                // Group subway records by Complex ID
+                const subwayComplexes = {};
+
+                subwayData.forEach(row => {
+
+                    const complexID = row['Complex ID'];
+
+                    const latitude = Number(row['GTFS Latitude']);
+                    const longitude = Number(row['GTFS Longitude']);
+
+                    if (!complexID || isNaN(latitude) || isNaN(longitude)) {
+                        return;
+                    }
+
+                    if (!subwayComplexes[complexID]) {
+
+                        subwayComplexes[complexID] = {
+                            name: row['Stop Name'],
+                            borough: row['Borough'],
+                            latitudes: [],
+                            longitudes: [],
+                            routes: new Set(),
+                            ada: row['ADA']
+                        };
+
+                    }
+
+                    subwayComplexes[complexID].latitudes.push(latitude);
+                    subwayComplexes[complexID].longitudes.push(longitude);
+
+                    if (row['Daytime Routes']) {
+                        subwayComplexes[complexID].routes.add(
+                            row['Daytime Routes']
+                        );
+                    }
+
+                });
+
+                // Calculate one representative point for each subway complex
+                Object.values(subwayComplexes).forEach(complex => {
+
+                    const averageLatitude =
+                        complex.latitudes.reduce((sum, value) => sum + value, 0)
+                        / complex.latitudes.length;
+
+                    const averageLongitude =
+                        complex.longitudes.reduce((sum, value) => sum + value, 0)
+                        / complex.longitudes.length;
+
+                    complex.latitude = averageLatitude;
+                    complex.longitude = averageLongitude;
+
+                });
+                // Determine which Community District contains each subway complex
+
+                function pointInPolygon(latitude, longitude, polygon) {
+
+                    let inside = false;
+
+                    for (
+                        let i = 0, j = polygon.length - 1;
+                        i < polygon.length;
+                        j = i++
+                    ) {
+
+                        const xi = polygon[i][0];
+                        const yi = polygon[i][1];
+
+                        const xj = polygon[j][0];
+                        const yj = polygon[j][1];
+
+                        const intersect =
+                            ((yi > latitude) !== (yj > latitude)) &&
+                            (
+                                longitude <
+                                (xj - xi) *
+                                (latitude - yi) /
+                                (yj - yi) +
+                                xi
+                            );
+
+                        if (intersect) {
+                            inside = !inside;
+                        }
+
+                    }
+
+                    return inside;
+                }
+
+
+                function pointInFeature(latitude, longitude, feature) {
+
+                    const geometry = feature.geometry;
+
+                    // Normal Polygon
+                    if (geometry.type === 'Polygon') {
+
+                        return pointInPolygon(
+                            latitude,
+                            longitude,
+                            geometry.coordinates[0]
+                        );
+
+                    }
+
+                    // MultiPolygon
+                    if (geometry.type === 'MultiPolygon') {
+
+                        for (const polygon of geometry.coordinates) {
+
+                            if (
+                                pointInPolygon(
+                                    latitude,
+                                    longitude,
+                                    polygon[0]
+                                )
+                            ) {
+                                return true;
+                            }
+
+                        }
+
+                    }
+
+                    return false;
+
+                }
+
+
+                // Count subway complexes in each Community District
+                const subwayByDistrict = {};
+
+                Object.values(subwayComplexes).forEach(complex => {
+
+                    for (const feature of geojsonData.features) {
+                        // Ignore joint-interest areas
+                        if (feature.properties.CDTAType !== "0") {
+                            continue;
+                        }
+
+                        const district =
+                            feature.properties.CDTA2020;
+
+                        if (!district) {
+                            continue;
+                        }
+
+                        if (
+                            pointInFeature(
+                                complex.latitude,
+                                complex.longitude,
+                                feature
+                            )
+                        ) {
+
+                            if (!subwayByDistrict[district]) {
+                                subwayByDistrict[district] = 0;
+                            }
+
+                            subwayByDistrict[district]++;
+
+                            break;
+                        }
+
+                    }
+
+                });
+
+                console.log(
+                    "Subway complexes by district:",
+                    subwayByDistrict
+                );
+
+                // Create a lookup table using GeoID
+                const demographicsByDistrict = {};
+
+                demographicData.forEach(row => {
+                    demographicsByDistrict[row.GeoID] = row;
+                });
+
+                const districtLayer = L.geoJSON(geojsonData, {
+
+                    filter: function (feature) {
+                        return feature.properties.CDTAType === "0";
+                    },
+
+                    style: {
+                        color: '#333333',
+                        weight: 1,
+                        fillColor: '#3388ff',
+                        fillOpacity: 0.6
+                    },
+
+                    onEachFeature: function (feature, layer) {
+
+                        layer.on({
+
+                            mouseover: function (e) {
+                                e.target.setStyle({
+                                    fillOpacity: 0.75
+                                });
+                            },
+
+                            mouseout: function (e) {
+                                e.target.setStyle({
+                                    fillOpacity: 0.6
+                                });
+                            },
+
+                            click: function (e) {
+
+                                const properties =
+                                    e.target.feature.properties;
+
+                                const borough =
+                                    properties.BoroName;
+
+                                const cdta =
+                                    properties.CDTA2020;
+
+                                const districtNumber =
+                                    cdta.substring(2);
+
+                                // Find the matching demographic data
+                                const demographic =
+                                    demographicsByDistrict[cdta];
+
+                                if (!demographic) {
+
+                                    const information = `
+                            <h3>${borough} Community District ${districtNumber}</h3>
+                            <b>Borough:</b> ${borough}<br>
+                            <b>District:</b> ${districtNumber}<br>
+                            <br>
+                            <i>No demographic data found.</i>
+                        `;
+
+                                    e.target.bindPopup(information).openPopup();
+
+                                    return;
+                                }
+
+                                const medianAge =
+                                    Number(demographic.MdAgeE).toFixed(1);
+
+                                const totalPopulation =
+                                    Number(demographic.Pop_1E);
+
+                                const hispanic =
+                                    Number(demographic.Hsp1E);
+
+                                const white =
+                                    Number(demographic.WtNHE);
+
+                                const black =
+                                    Number(demographic.BlNHE);
+
+                                const asian =
+                                    Number(demographic.AsnNHE);
+
+                                const other =
+                                    Number(demographic.OthNHE);
+
+                                const under18 =
+                                    Number(demographic.PopU181E);
+
+                                const information = `
+                                     <h3>${demographic.GeogName}</h3>
+
+                                    <b>${borough} Community District ${districtNumber}</b><br><br>
+
+                                    <b>Population:</b>
+                                    ${totalPopulation.toLocaleString()}<br>
+
+                                    <b>Median age:</b>
+                                    ${medianAge}<br><br>
+
+                                    <b>Hispanic/Latino:</b>
+                                    ${hispanic.toLocaleString()}
+                                    (${(hispanic / totalPopulation * 100).toFixed(1)}%)<br>
+
+                                    <b>Non-Hispanic White:</b>
+                                    ${white.toLocaleString()}
+                                    (${(white / totalPopulation * 100).toFixed(1)}%)<br>
+
+                                    <b>Non-Hispanic Black:</b>
+                                    ${black.toLocaleString()}
+                                    (${(black / totalPopulation * 100).toFixed(1)}%)<br>
+
+                                    <b>Asian:</b>
+                                    ${asian.toLocaleString()}
+                                    (${(asian / totalPopulation * 100).toFixed(1)}%)<br>
+
+                                    <b>Other:</b>
+                                    ${other.toLocaleString()}
+                                    (${(other / totalPopulation * 100).toFixed(1)}%)<br>
+
+                                    <b>Under 18:</b>
+                                    ${under18.toLocaleString()}
+                                    (${(under18 / totalPopulation * 100).toFixed(1)}%)<br><br>
+
+                                    <b>Transportation:</b><br>
+
+                                    <b>Subway Station Complexes:</b>
+                                    ${subwayByDistrict[cdta] || 0}<br>
+
+                                    <b>Subway Complexes per 100k Residents:</b>
+                                    ${totalPopulation > 0
+                                        ? ((subwayByDistrict[cdta] || 0) / totalPopulation * 100000).toFixed(1)
+                                        : 'N/A'}<br><br>
+                                    
+                                    <b>Economic Indicators:</b><br>
+
+                                    <b>Median Household Income:</b>
+                                    ${economicsByDistrict[cdta]
+                                        ? '$' + Number(economicsByDistrict[cdta].MdHHIncE).toLocaleString()
+                                        : 'N/A'}<br>
+
+                                    <b>Per Capita Income:</b>
+                                    ${economicsByDistrict[cdta]
+                                        ? '$' + Number(economicsByDistrict[cdta].PerCapIncE).toLocaleString()
+                                        : 'N/A'}<br>
+
+                                    <b>Population Poverty Rate:</b>
+                                    ${economicsByDistrict[cdta]
+                                        ? (
+                                            Number(economicsByDistrict[cdta].PBwPvE) /
+                                            Number(economicsByDistrict[cdta].PopPvU1E) * 100
+                                        ).toFixed(1) + '%'
+                                        : 'N/A'}
+                                `;
+
+                                e.target.bindPopup(information).openPopup();
+
+                            }
+
+                        });
+
+                    }
+
+                }).addTo(map);
+                // Connect the dropdown to the map
+                const metricSelector =
+                    document.getElementById('metric');
+
+                // Create the map legend
+                const legend = L.control({ position: 'bottomright' });
+
+                legend.onAdd = function (map) {
+
+                    const div = L.DomUtil.create('div', 'info legend');
+
+                    div.innerHTML = `
+        <b>Metric</b><br>
+        <span style="display:inline-block;width:18px;height:18px;background:#fff7bc"></span> Lowest<br>
+        <span style="display:inline-block;width:18px;height:18px;background:#fe9929"></span> Low<br>
+        <span style="display:inline-block;width:18px;height:18px;background:#ec7014"></span> High<br>
+        <span style="display:inline-block;width:18px;height:18px;background:#cc4c02"></span> Highest
+    `;
+
+                    return div;
+                };
+
+                legend.addTo(map);
+
+
+                // Change the map when the user selects a metric
+                metricSelector.addEventListener('change', function () {
+
+                    const selectedMetric = this.value;
+
+                    // Collect all values for this metric
+                    const values = [];
+
+                    districtLayer.eachLayer(function (layer) {
+
+                        const cdta =
+                            layer.feature.properties.CDTA2020;
+
+                        const demographic =
+                            demographicsByDistrict[cdta];
+
+                        if (!demographic) {
+                            return;
+                        }
+
+                        let value;
+
+                        if (selectedMetric === 'population') {
+                            value = Number(demographic.Pop_1E);
+                        }
+
+                        else if (selectedMetric === 'medianAge') {
+                            value = Number(demographic.MdAgeE);
+                        }
+
+                        else if (selectedMetric === 'hispanic') {
+                            value =
+                                Number(demographic.Hsp1E) /
+                                Number(demographic.Pop_1E);
+                        }
+
+                        else if (selectedMetric === 'white') {
+                            value =
+                                Number(demographic.WtNHE) /
+                                Number(demographic.Pop_1E);
+                        }
+
+                        else if (selectedMetric === 'black') {
+                            value =
+                                Number(demographic.BlNHE) /
+                                Number(demographic.Pop_1E);
+                        }
+
+                        else if (selectedMetric === 'asian') {
+                            value =
+                                Number(demographic.AsnNHE) /
+                                Number(demographic.Pop_1E);
+                        }
+
+                        else if (selectedMetric === 'under18') {
+                            value =
+                                Number(demographic.PopU181E) /
+                                Number(demographic.Pop_1E);
+                        }
+
+                        else if (selectedMetric === 'subway') {
+
+                            value =
+                                subwayByDistrict[cdta] || 0;
+
+                        }
+                        else if (selectedMetric === 'subwayPer100k') {
+
+                            const population =
+                                Number(demographic.Pop_1E);
+
+                            const subwayCount =
+                                subwayByDistrict[cdta] || 0;
+
+                            value =
+                                population > 0
+                                    ? (subwayCount / population) * 100000
+                                    : 0;
+                        }
+
+                        else if (selectedMetric === 'income') {
+
+                            const economics =
+                                economicsByDistrict[cdta];
+
+                            value =
+                                economics
+                                    ? Number(economics.MdHHIncE)
+                                    : 0;
+
+                        }
+                        else if (selectedMetric === 'perCapitaIncome') {
+
+                            const economics =
+                                economicsByDistrict[cdta];
+
+                            value =
+                                economics
+                                    ? Number(economics.PerCapIncE)
+                                    : 0;
+
+                        }
+                        else if (selectedMetric === 'povertyRate') {
+
+                            const economics =
+                                economicsByDistrict[cdta];
+
+                            value =
+                                economics &&
+                                    Number(economics.PopPvU1E) > 0
+                                    ? (
+                                        Number(economics.PBwPvE) /
+                                        Number(economics.PopPvU1E)
+                                    ) * 100
+                                    : 0;
+
+                        }
+                        if (!isNaN(value)) {
+                            values.push(value);
+                        }
+
+                    });
+
+
+                    // Sort values from lowest to highest
+                    values.sort(function (a, b) {
+                        return a - b;
+                    });
+
+
+                    // Find the value at a given percentile
+                    function percentile(percent) {
+
+                        const index =
+                            Math.floor(percent * (values.length - 1));
+
+                        return values[index];
+
+                    }
+
+
+                    // Create five levels based on the actual NYC data
+                    const level1 = percentile(0.20);
+                    const level2 = percentile(0.40);
+                    const level3 = percentile(0.60);
+                    const level4 = percentile(0.80);
+
+
+                    // Color each district
+                    districtLayer.eachLayer(function (layer) {
+
+                        const cdta =
+                            layer.feature.properties.CDTA2020;
+
+                        const demographic =
+                            demographicsByDistrict[cdta];
+
+                        if (!demographic) {
+                            return;
+                        }
+
+                        let value;
+
+                        if (selectedMetric === 'population') {
+                            value = Number(demographic.Pop_1E);
+                        }
+
+                        else if (selectedMetric === 'medianAge') {
+                            value = Number(demographic.MdAgeE);
+                        }
+
+                        else if (selectedMetric === 'hispanic') {
+                            value =
+                                Number(demographic.Hsp1E) /
+                                Number(demographic.Pop_1E);
+                        }
+
+                        else if (selectedMetric === 'white') {
+                            value =
+                                Number(demographic.WtNHE) /
+                                Number(demographic.Pop_1E);
+                        }
+
+                        else if (selectedMetric === 'black') {
+                            value =
+                                Number(demographic.BlNHE) /
+                                Number(demographic.Pop_1E);
+                        }
+
+                        else if (selectedMetric === 'asian') {
+                            value =
+                                Number(demographic.AsnNHE) /
+                                Number(demographic.Pop_1E);
+                        }
+
+                        else if (selectedMetric === 'under18') {
+                            value =
+                                Number(demographic.PopU181E) /
+                                Number(demographic.Pop_1E);
+                        }
+                        else if (selectedMetric === 'subway') {
+
+                            value =
+                                subwayByDistrict[cdta] || 0;
+
+                        }
+                        else if (selectedMetric === 'subwayPer100k') {
+
+                            const population =
+                                Number(demographic.Pop_1E);
+
+                            const subwayCount =
+                                subwayByDistrict[cdta] || 0;
+
+                            value =
+                                population > 0
+                                    ? (subwayCount / population) * 100000
+                                    : 0;
+
+                        }
+                        else if (selectedMetric === 'income') {
+
+                            const economics =
+                                economicsByDistrict[cdta];
+
+                            value =
+                                economics
+                                    ? Number(economics.MdHHIncE)
+                                    : 0;
+
+                        }
+                        else if (selectedMetric === 'perCapitaIncome') {
+
+                            const economics =
+                                economicsByDistrict[cdta];
+
+                            value =
+                                economics
+                                    ? Number(economics.PerCapIncE)
+                                    : 0;
+
+                        }
+
+                        else if (selectedMetric === 'povertyRate') {
+
+                            const economics =
+                                economicsByDistrict[cdta];
+
+                            value =
+                                economics &&
+                                    Number(economics.PopPvU1E) > 0
+                                    ? (
+                                        Number(economics.PBwPvE) /
+                                        Number(economics.PopPvU1E)
+                                    ) * 100
+                                    : 0;
+
+                        }
+
+                        let fillColor;
+
+                        if (
+                            selectedMetric === 'subway' ||
+                            selectedMetric === 'subwayPer100k'
+                        ) {
+
+                            // Purple scale for transit metrics
+
+                            if (value <= level1) {
+                                fillColor = '#f2f0f7';
+                            }
+
+                            else if (value <= level2) {
+                                fillColor = '#cbc9e2';
+                            }
+
+                            else if (value <= level3) {
+                                fillColor = '#9e9ac8';
+                            }
+
+                            else if (value <= level4) {
+                                fillColor = '#756bb1';
+                            }
+
+                            else {
+                                fillColor = '#54278f';
+                            }
+
+                        }
+
+                        else if (
+                            selectedMetric === 'income' ||
+                            selectedMetric === 'perCapitaIncome' ||
+                            selectedMetric === 'povertyRate'
+                        ) {
+
+                            // Green scale for median household income
+
+                            if (value <= level1) {
+                                fillColor = '#edf8e9';
+                            }
+
+                            else if (value <= level2) {
+                                fillColor = '#bae4b3';
+                            }
+
+                            else if (value <= level3) {
+                                fillColor = '#74c476';
+                            }
+
+                            else if (value <= level4) {
+                                fillColor = '#31a354';
+                            }
+
+                            else {
+                                fillColor = '#006d2c';
+                            }
+
+                        }
+
+                        else {
+
+                            // Yellow → orange → red scale for
+                            // population and demographic metrics
+
+                            if (value <= level1) {
+                                fillColor = '#fff7bc';
+                            }
+
+                            else if (value <= level2) {
+                                fillColor = '#fec44f';
+                            }
+
+                            else if (value <= level3) {
+                                fillColor = '#fe9929';
+                            }
+
+                            else if (value <= level4) {
+                                fillColor = '#ec7014';
+                            }
+
+                            else {
+                                fillColor = '#cc4c02';
+                            }
+
+                        }
+
+
+                        layer.setStyle({
+                            fillColor: fillColor
+                        });
+
+                    });
+
+
+                    // Update the legend
+                    let metricName = 'Population';
+
+                    if (selectedMetric === 'medianAge') {
+                        metricName = 'Median Age';
+                    }
+
+                    else if (selectedMetric === 'hispanic') {
+                        metricName = 'Hispanic/Latino %';
+                    }
+
+                    else if (selectedMetric === 'white') {
+                        metricName = 'Non-Hispanic White %';
+                    }
+
+                    else if (selectedMetric === 'black') {
+                        metricName = 'Non-Hispanic Black %';
+                    }
+
+                    else if (selectedMetric === 'asian') {
+                        metricName = 'Asian %';
+                    }
+
+                    else if (selectedMetric === 'under18') {
+                        metricName = 'Under 18 %';
+                    }
+
+                    else if (selectedMetric === 'subway') {
+                        metricName = 'Subway Station Complexes';
+                    }
+
+                    else if (selectedMetric === 'subwayPer100k') {
+                        metricName = 'Subway Complexes / 100k Residents';
+                    }
+                    else if (selectedMetric === 'income') {
+                        metricName = 'Median Household Income';
+                    }
+                    else if (selectedMetric === 'perCapitaIncome') {
+                        metricName = 'Per Capita Income';
+                    }
+                    else if (selectedMetric === 'povertyRate') {
+                        metricName = 'Population Poverty Rate';
+                    }
+                    const formatValue = function (value) {
+
+                        if (
+                            selectedMetric === 'hispanic' ||
+                            selectedMetric === 'white' ||
+                            selectedMetric === 'black' ||
+                            selectedMetric === 'asian' ||
+                            selectedMetric === 'under18'
+                        ) {
+                            return (value * 100).toFixed(1) + '%';
+                        }
+
+                        else if (
+                            selectedMetric === 'population' ||
+                            selectedMetric === 'subway' ||
+                            selectedMetric === 'subwayPer100k'
+                        ) {
+                            return value.toFixed(1);
+                        }
+
+                        else if (
+                            selectedMetric === 'income' ||
+                            selectedMetric === 'perCapitaIncome'
+                        ) {
+                            return '$' + Math.round(value).toLocaleString();
+                        }
+
+                        else if (selectedMetric === 'povertyRate') {
+                            return value.toFixed(1) + '%';
+                        }
+
+                        else {
+                            return value.toFixed(1);
+                        }
+                    }
+
+
+                    let legendColors;
+
+                    if (
+                        selectedMetric === 'subway' ||
+                        selectedMetric === 'subwayPer100k'
+                    ) {
+
+                        legendColors = [
+                            '#f2f0f7',
+                            '#cbc9e2',
+                            '#9e9ac8',
+                            '#756bb1',
+                            '#54278f'
+                        ];
+
+                    }
+                    else if (
+                        selectedMetric === 'income' ||
+                        selectedMetric === 'perCapitaIncome' ||
+                        selectedMetric === 'povertyRate'
+                    ) {
+
+                        legendColors = [
+                            '#edf8e9',
+                            '#bae4b3',
+                            '#74c476',
+                            '#31a354',
+                            '#006d2c'
+                        ];
+
+                    }
+                    else {
+
+                        legendColors = [
+                            '#fff7bc',
+                            '#fec44f',
+                            '#fe9929',
+                            '#ec7014',
+                            '#cc4c02'
+                        ];
+
+                    }
+
+                    legend.getContainer().innerHTML = `
+    <b>${metricName}</b><br>
+
+    <span style="display:inline-block;width:18px;height:18px;background:${legendColors[0]}"></span>
+    Lowest: ≤ ${formatValue(level1)}<br>
+
+    <span style="display:inline-block;width:18px;height:18px;background:${legendColors[1]}"></span>
+    ${formatValue(level1)}–${formatValue(level2)}<br>
+
+    <span style="display:inline-block;width:18px;height:18px;background:${legendColors[2]}"></span>
+    ${formatValue(level2)}–${formatValue(level3)}<br>
+
+    <span style="display:inline-block;width:18px;height:18px;background:${legendColors[3]}"></span>
+    ${formatValue(level3)}–${formatValue(level4)}<br>
+
+    <span style="display:inline-block;width:18px;height:18px;background:${legendColors[4]}"></span>
+    Highest: > ${formatValue(level4)}
+`;
+
+                });
+            });
+
+
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,60 @@
+GeogName,GeoID,Borough,Pop_1E,PopU181E,MdAgeE,Hsp1E,WtNHE,BlNHE,AsnNHE,OthNHE
+BK01 Williamsburg-Greenpoint (CD 1 Equivalent),BK01,Brooklyn,208119,50858,31.9,44380,123802,14637,13895,2265
+BK02 Downtown Brooklyn-Fort Greene (CD 2 Approximation),BK02,Brooklyn,128393,20094,35.6,17783,62452,22925,14994,1087
+BK03 Bedford-Stuyvesant (CD 3 Approximation),BK03,Brooklyn,182837,40978,33.3,33973,52291,76247,7790,768
+BK04 Bushwick (CD 4 Equivalent),BK04,Brooklyn,112557,15981,32.9,52092,28867,19125,6735,937
+BK05 East New York-Cypress Hills (CD 5 Approximation),BK05,Brooklyn,198737,48465,37.3,70660,6489,94307,13671,4237
+BK06 Park Slope-Carroll Gardens (CD 6 Approximation),BK06,Brooklyn,120019,24708,37.7,18247,73333,10356,9033,1243
+BK07 Sunset Park-Windsor Terrace (CD 7 Approximation),BK07,Brooklyn,120461,28065,37.8,49688,34237,3547,28826,568
+BK08 Crown Heights (North) (CD 8 Approximation),BK08,Brooklyn,109788,20462,35.5,14191,31954,48863,5436,1872
+BK09 Crown Heights (South) (CD 9 Approximation),BK09,Brooklyn,98347,19772,36.8,9132,28345,51343,2637,1681
+BK10 Bay Ridge-Dyker Heights (CD 10 Approximation),BK10,Brooklyn,124966,25143,41.6,24104,64599,2951,28570,816
+BK11 Bensonhurst-Bath Beach (CD 11 Approximation),BK11,Brooklyn,181185,39461,41.1,32671,66681,3045,72643,841
+BK12 Borough Park-Kensington (CD 12 Approximation),BK12,Brooklyn,196315,71801,28.6,25677,118049,6026,36438,5033
+BK13 Coney Island-Brighton Beach (CD 13 Approximation),BK13,Brooklyn,111396,23048,46.1,17851,59138,14949,13972,250
+BK14 Flatbush-Midwood (CD 14 Approximation),BK14,Brooklyn,154853,33055,38.2,23021,55365,46336,19164,1958
+BK15 Sheepshead Bay-Gravesend (East) (CD 15 Approximation),BK15,Brooklyn,152473,33957,42.2,14722,93700,7454,28266,2195
+BK16 Ocean Hill-Brownsville (CD 16 Approximation),BK16,Brooklyn,98956,22703,36.1,23190,5483,61303,1852,818
+BK17 East Flatbush (CD 17 Approximation),BK17,Brooklyn,150992,27702,41.0,11600,7378,113691,3035,1402
+BK18 Canarsie-Flatlands (CD 18 Approximation),BK18,Brooklyn,181172,38221,42.3,15759,37038,103745,10773,1779
+BX01 Melrose-Mott Haven-Port Morris (CD 1 Approximation),BX01,Bronx,97643,27485,33.2,68010,1750,24003,879,691
+BX02 Longwood-Hunts Point (CD 2 Approximation),BX02,Bronx,54362,14724,34.4,39152,737,12818,244,362
+BX03 Morrisania-Crotona Park East (CD 3 Approximation),BX03,Bronx,90941,25431,32.7,50176,1383,35115,512,699
+BX04 Highbridge-Concourse (CD 4 Approximation),BX04,Bronx,146986,36388,35.4,87875,5586,48213,1592,1035
+BX05 Morris Heights-Mount Hope (CD 5 Approximation),BX05,Bronx,131607,35529,34.1,88455,2202,36359,922,931
+BX06 Tremont-Belmont-West Farms (CD 6 Approximation),BX06,Bronx,86478,21862,31.2,54561,5840,22837,879,602
+BX07 Fordham-Bedford Park-Norwood (CD 7 Approximation),BX07,Bronx,131009,31118,36.1,93988,7718,19870,6820,585
+BX08 Riverdale-Kingsbridge-Marble Hill (CD 8 Approximation),BX08,Bronx,104695,22688,41.4,50916,32877,12657,4013,1187
+BX09 Soundview-Parkchester (CD 9 Approximation),BX09,Bronx,168884,40329,36.2,96086,3754,44778,17246,3105
+BX10 Co-op City-Throgs Neck (CD 10 Approximation),BX10,Bronx,126934,26776,40.6,54693,27837,30571,9816,714
+BX11 Pelham Parkway-Morris Park (CD 11 Approximation),BX11,Bronx,113929,25616,38.3,51446,22841,24992,10460,1133
+BX12 Wakefield-Williamsbridge-Eastchester (CD 12 Approximation),BX12,Bronx,158428,36336,37.7,45505,9192,91033,3354,2962
+MN01 Financial District-Tribeca (CD 1 Equivalent),MN01,Manhattan,70761,10528,34.4,5217,42870,3361,14383,971
+MN02 Greenwich Village-SoHo (CD 2 Equivalent),MN02,Manhattan,84761,7342,37.8,7988,58863,2623,11899,353
+MN03 Lower East Side-Chinatown (CD 3 Equivalent),MN03,Manhattan,154628,17383,38.8,35884,55515,13595,42742,1427
+MN04 Chelsea-Hell's Kitchen (CD 4 Approximation),MN04,Manhattan,117703,9647,38.7,21103,63131,7976,17400,1311
+MN05 Midtown-Flatiron-Union Square (CD 5 Approximation),MN05,Manhattan,52183,3875,38.5,5924,28869,4232,10016,229
+MN06 East Midtown-Murray Hill (CD 6 Approximation),MN06,Manhattan,143733,14043,37.7,12282,93132,5761,23685,1306
+MN07 Upper West Side (CD 7 Approximation),MN07,Manhattan,221194,33954,42.8,32760,137837,14230,24093,2701
+MN08 Upper East Side-Roosevelt Island (CD 8 Equivalent),MN08,Manhattan,211810,29821,42.2,19793,154302,6738,21542,1716
+MN09 Morningside Heights-Hamilton Heights (CD 9 Equivalent),MN09,Manhattan,112952,15988,34.9,42675,27525,25306,11812,1180
+MN10 Harlem (CD 10 Equivalent),MN10,Manhattan,135011,25877,38.6,33359,21322,66545,5521,1981
+MN11 East Harlem (CD 11 Equivalent),MN11,Manhattan,127516,24867,38.0,52220,18594,39113,11637,1214
+MN12 Washington Heights-Inwood (CD 12 Equivalent),MN12,Manhattan,186972,30061,39.6,121114,39797,12402,6886,1602
+QN01 Astoria-Queensbridge (CD 1 Equivalent),QN01,Queens,179812,26913,36.6,47158,82975,11824,27517,1820
+QN02 Long Island City-Sunnyside-Woodside (CD 2 Approximation),QN02,Queens,124290,20154,38.1,37452,36827,2626,42373,625
+QN03 Jackson Heights-East Elmhurst (CD 3 Approximation),QN03,Queens,161589,34167,39.2,99585,17594,9956,28996,947
+QN04 Elmhurst-Corona (CD 4 Approximation),QN04,Queens,167356,36934,37.8,87619,8833,9701,57680,1178
+QN05 Ridgewood-Maspeth-Middle Village (CD 5 Approximation),QN05,Queens,177081,33587,39.5,67797,82003,3495,17828,1549
+QN06 Forest Hills-Rego Park (CD 6 Approximation),QN06,Queens,123365,23683,44.1,23454,50681,4631,36082,1550
+QN07 Flushing-Murray Hill-Whitestone (CD 7 Approximation),QN07,Queens,249029,40579,47.5,45595,55659,4410,135604,2413
+QN08 Fresh Meadows-Hillcrest-Briarwood (CD 8 Approximation),QN08,Queens,151100,30410,41.0,30517,43379,18712,48145,2582
+QN09 Kew Gardens-Richmond Hill-Woodhaven (CD 9 Approximation),QN09,Queens,146302,29670,40.1,59947,24011,8434,38216,7654
+QN10 South Ozone Park-Howard Beach (CD 10 Approximation),QN10,Queens,136010,27438,42.3,35520,27096,16983,31602,11559
+QN11 Auburndale-Bayside-Douglaston (CD 11 Approximation),QN11,Queens,120166,22892,46.5,16952,41957,2692,54164,1068
+QN12 Jamaica-St. Albans-Hollis (CD 12 Approximation),QN12,Queens,253804,56409,38.7,43490,5196,138258,39483,14671
+QN13 Queens Village-Bellerose-Rosedale (CD 13 Approximation),QN13,Queens,204843,36314,44.3,27828,17799,105603,38667,5448
+QN14 The Rockaways (CD 14 Equivalent),QN14,Queens,131231,34525,39.2,30221,45375,43678,5050,1657
+SI01 North Shore (CD 1 Equivalent),SI01,Staten Island,182594,40075,38.5,56602,60973,37944,19822,940
+SI02 Mid-Island (CD 2 Approximation),SI02,Staten Island,140986,30132,41.7,19173,83806,4426,28717,863
+SI03 South Shore (CD 3 Approximation),SI03,Staten Island,170852,36419,41.9,21014,129944,1170,14216,936
